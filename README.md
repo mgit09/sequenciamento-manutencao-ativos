@@ -9,7 +9,7 @@ vários ativos (religadores, transformadores, chaves seccionadoras) com uma
 duração do serviço, prazo e peso de criticidade. O objetivo é encontrar a
 ordem de visita que minimiza o atraso ponderado total.
 
-Comparamos três algoritmos em três instâncias (12, 50 e 150 ativos):
+Nesse projeto, foram comparados três algoritmos em três instâncias (12, 50 e 150 ativos):
 descida gulosa com reinício aleatório, simulated annealing e algoritmo genético.
 
 ## Como executar
@@ -28,10 +28,6 @@ um ambiente virtual e instale as dependências:
     py -m venv .venv
     .venv\Scripts\Activate.ps1
     pip install -r requirements.txt
-
-Se o PowerShell bloquear a ativação, rode antes
-`Set-ExecutionPolicy -Scope Process RemoteSigned`. No prompt de comando
-(cmd), use `.venv\Scripts\activate.bat`.
 
 Para verificar a instalação e a função de avaliação:
 
