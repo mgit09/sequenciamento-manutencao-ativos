@@ -1,6 +1,7 @@
-# Trabalho Prático: Sequenciamento de Manutenção de Ativos
+# Sequenciamento de Manutenção de Ativos
 
-Trabalho prático de Fundamentos de Inteligência Artificial (UFMG).
+Trabalho prático realizado no contexto da disciplina de Fundamentos de 
+Inteligência Artificial (UFMG).
 
 Uma concessionária de energia precisa executar a manutenção preventiva de
 vários ativos (religadores, transformadores, chaves seccionadoras) com uma
@@ -39,10 +40,21 @@ Para verificar a instalação e a função de avaliação:
 ## Estrutura do projeto
 
 ```txt
-    instancias/                # Instâncias fornecidas (manutencao_*.txt)
-    resultados/                # Arquivos .csv gerados pelos experimentos
-    problema_manutencao.py     # Modelo do problema e função de avaliação
-    testes.py                  # Testes automáticos
+├── instancias/                  # Instâncias fornecidas (manutencao_*.txt)
+├── resultados/                  # Arquivos .csv gerados pelos experimentos
+├── src/
+|   ├── problema_manutencao.py   # Modelo do problema e função de avaliação
+|   └── algoritmos/              # Algoritmos utilizados (GA, GD, SA)
+|
+├── tests/
+|   ├── testes.py                # Testes automáticos
+|   └── algoritmos/              # Algoritmos utilizados (GA, GD, SA)
+|
+├── executar_experimentos.py     # Executa tudo e salva os .csv
+├── gerar_analises.py            # Lê os .csv e gera tabelas, boxplots, curvas, testes estatísticos
+|
+├── requirements.txt             # Requisitos para rodar os códigos
+└── README.md                    
 ```
 
 ## Reprodução dos resultados
