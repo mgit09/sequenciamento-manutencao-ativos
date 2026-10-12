@@ -14,10 +14,13 @@ import numpy as np
 
 @dataclass
 class Instancia:
+    """
+    Armazena os dados de uma instância do problema de manutenção.
+    O índice 0 representa a base, e os índices 1..n representam os ativos.
+    """
     quantidade_ativos: int
 
-    # Os vetores abaixo têm tamanho n+1: o índice 0 representa a base
-    # (com duração 0) e os índices 1..n representam os ativos
+    # Os vetores abaixo têm tamanho n+1
     duracoes_servico: np.ndarray
     prazos: np.ndarray
     pesos_criticidade: np.ndarray
@@ -109,3 +112,32 @@ def calcular_atraso_ponderado_total(instancia: Instancia, sequencia_de_visita) -
         ativo_anterior = ativo
 
     return int(atraso_ponderado_total)
+
+
+class ProblemaManutencao:
+    """
+    Interface entre os algoritmos de busca e o problema de manutenção.
+
+    Os algoritmos só chamam os métodos desta classe, sem saber nada
+    sobre ativos, prazos ou deslocamentos.
+    """
+
+    def __init__(self, instancia: Instancia, semente: int | None = None):
+        """Construtor da classe."""
+        self.instancia = instancia
+        self.gerador_aleatorio = np.random.default_rng(semente)
+        self.quantidade_avaliacoes = 0
+
+    def gerar_solucao_aleatoria(self) -> list[int]:
+        """Sorteia uma sequência de visita qualquer (permutação dos ativos 1..n)."""
+        ativos = np.arange(1, self.instancia.quantidade_ativos + 1)
+        return self.gerador_aleatorio.permutation(ativos).tolist()
+
+    def avaliar(self, sequencia_de_visita) -> int:
+        """Calcula h(π) e conta uma avaliação do orçamento."""
+        self.quantidade_avaliacoes += 1
+        return calcular_atraso_ponderado_total(self.instancia, sequencia_de_visita)
+
+    def zerar_contador_avaliacoes(self):
+        """Zera o contador de avaliações."""
+        self.quantidade_avaliacoes = 0
