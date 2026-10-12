@@ -8,9 +8,11 @@ Os algoritmos de busca usarão este módulo sem conhecer os detalhes dele.
 
 from dataclasses import dataclass
 from pathlib import Path
+from collections.abc import Iterator
 
 import numpy as np
 
+# ========================================================================
 
 @dataclass
 class Instancia:
@@ -28,6 +30,7 @@ class Instancia:
     # Matriz (n+1)x(n+1) com o tempo de deslocamento entre cada par de pontos
     tempos_deslocamento: np.ndarray
 
+# ========================================================================
 
 def ler_instancia(caminho_arquivo) -> Instancia:
     """
@@ -91,6 +94,7 @@ def ler_instancia(caminho_arquivo) -> Instancia:
         tempos_deslocamento,
     )
 
+# ========================================================================
 
 def calcular_atraso_ponderado_total(instancia: Instancia, sequencia_de_visita) -> int:
     """
@@ -113,6 +117,7 @@ def calcular_atraso_ponderado_total(instancia: Instancia, sequencia_de_visita) -
 
     return int(atraso_ponderado_total)
 
+# ========================================================================
 
 class ProblemaManutencao:
     """
@@ -128,16 +133,72 @@ class ProblemaManutencao:
         self.gerador_aleatorio = np.random.default_rng(semente)
         self.quantidade_avaliacoes = 0
 
+    # --------------------------------------------------------------------
     def gerar_solucao_aleatoria(self) -> list[int]:
-        """Sorteia uma sequência de visita qualquer (permutação dos ativos 1..n)."""
+        """
+        Sorteia uma sequência de visita qualquer 
+        (permutação dos ativos 1..n).
+        """
         ativos = np.arange(1, self.instancia.quantidade_ativos + 1)
+
         return self.gerador_aleatorio.permutation(ativos).tolist()
 
+    # --------------------------------------------------------------------
     def avaliar(self, sequencia_de_visita) -> int:
         """Calcula h(π) e conta uma avaliação do orçamento."""
         self.quantidade_avaliacoes += 1
-        return calcular_atraso_ponderado_total(self.instancia, sequencia_de_visita)
+        return calcular_atraso_ponderado_total(
+            self.instancia,
+            sequencia_de_visita,
+        )
 
+    # --------------------------------------------------------------------
     def zerar_contador_avaliacoes(self):
         """Zera o contador de avaliações."""
         self.quantidade_avaliacoes = 0
+
+    # --------------------------------------------------------------------
+    def gerar_sucessores(self, solucao) -> Iterator[list[int]]:
+        """
+        Gera, um de cada vez, todos os sucessores de uma solução.
+
+        Cada sucessor é obtido trocando de lugar dois ativos da sequência.
+        A solução original não é modificada.
+        """
+        quantidade_ativos = len(solucao)
+
+        # Percorre todos os pares de posições (posicao_a < posicao_b)
+        for posicao_a in range(quantidade_ativos - 1):
+
+            for posicao_b in range(posicao_a + 1, quantidade_ativos):
+
+                # Troca os ativos de lugar em uma cópia da solução
+                sucessor = list(solucao)
+                sucessor[posicao_a], sucessor[posicao_b] = (
+                    sucessor[posicao_b],
+                    sucessor[posicao_a],
+                )
+                yield sucessor
+
+    # --------------------------------------------------------------------
+    def gerar_sucessor_aleatorio(self, solucao) -> list[int]:
+        """
+        Sorteia um único sucessor de uma solução.
+
+        O sucessor é obtido trocando de lugar dois ativos escolhidos
+        ao acaso. A solução original não é modificada.
+        """
+        # Sorteia duas posições diferentes da sequência
+        posicao_a, posicao_b = self.gerador_aleatorio.choice(
+            len(solucao),
+            size=2,
+            replace=False,
+        )
+
+        # Troca os ativos de lugar em uma cópia da solução
+        sucessor = list(solucao)
+        sucessor[posicao_a], sucessor[posicao_b] = (
+            sucessor[posicao_b],
+            sucessor[posicao_a],
+        )
+        return sucessor
