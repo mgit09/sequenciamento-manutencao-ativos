@@ -4,7 +4,7 @@ Testes automáticos do projeto. Execute no terminal com o seguinte comando:
 python testes.py
 """
 
-from problema_manutencao import (
+from src.problema_manutencao import (
     ler_instancia, 
     calcular_atraso_ponderado_total
 )
