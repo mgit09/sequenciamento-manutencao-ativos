@@ -11,7 +11,7 @@ from src.problema_manutencao import (
 )
 
 
-def teste_sequencia_identidade_instancia_pequena():
+def teste1_sequencia_identidade_instancia_pequena():
     """
     Verifica os dados da instância pequena e o custo de uma sequência conhecida.
     """
@@ -32,7 +32,7 @@ def teste_sequencia_identidade_instancia_pequena():
     assert atraso_ponderado == 4366
 
 
-def teste_solucao_aleatoria_e_permutacao_valida():
+def teste2_solucao_aleatoria_e_permutacao_valida():
     problema = ProblemaManutencao(
         ler_instancia("instancias/manutencao_pequena.txt"),
         semente=1,
@@ -45,7 +45,7 @@ def teste_solucao_aleatoria_e_permutacao_valida():
         assert sorted(solucao) == list(range(1, 13))
 
 
-def teste_mesma_semente_gera_mesma_solucao():
+def teste3_mesma_semente_gera_mesma_solucao():
     instancia = ler_instancia("instancias/manutencao_pequena.txt")
 
     primeira = ProblemaManutencao(
@@ -61,7 +61,7 @@ def teste_mesma_semente_gera_mesma_solucao():
     assert primeira == segunda
 
 
-def teste_contador_conta_cada_avaliacao():
+def teste4_contador_conta_cada_avaliacao():
     problema = ProblemaManutencao(
         ler_instancia("instancias/manutencao_pequena.txt"),
         semente=1,
@@ -77,5 +77,10 @@ def teste_contador_conta_cada_avaliacao():
 
 
 if __name__ == "__main__":
-    teste_sequencia_identidade_instancia_pequena()
-    print("Todos os testes passaram.")
+    # Tenta rodar todos os testes:
+    teste1_sequencia_identidade_instancia_pequena()
+    teste2_solucao_aleatoria_e_permutacao_valida()
+    teste3_mesma_semente_gera_mesma_solucao()
+    teste4_contador_conta_cada_avaliacao()
+
+    print("Todos os testes passaram.") # Se algum falhar, não será impresso
