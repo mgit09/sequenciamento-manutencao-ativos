@@ -38,21 +38,24 @@ Para verificar a instalação e a função de avaliação:
 ```txt
 sequenciamento-manutencao-ativos
 │
-├── instancias/                  # Instâncias fornecidas (manutencao_*.txt)
-├── resultados/                  # Arquivos .csv gerados pelos experimentos
+├── instancias/                   # Instâncias fornecidas (manutencao_*.txt)
+├── resultados/                   # Arquivos *.csv gerados pelos experimentos
+│
+├── scripts/
+│   ├── executar_experimentos.py  # Executa os algoritmos nas instâncias e salva os *.csv
+│   └── gerar_analises.py         # Lê os *.csv e gera tabelas, boxplots, curvas, testes estatísticos
+│
 ├── src/
-│   ├── problema_manutencao.py   # Modelo do problema e função de avaliação
-│   └── algoritmos/              # Algoritmos utilizados (GA, GD, SA)
+│   ├── problema_manutencao.py    # Modelo do problema e função de avaliação
+│   └── algoritmos/               # Algoritmos utilizados (GA, GD, SA)
 │
 ├── tests/
-│   ├── testes.py                # Testes automáticos
-│   └── algoritmos/              # Algoritmos utilizados (GA, GD, SA)
+│   └── testes.py                 # Testes automáticos
 │
-├── executar_experimentos.py     # Executa tudo e salva os .csv
-├── gerar_analises.py            # Lê os .csv e gera tabelas, boxplots, curvas, testes estatísticos
-│
-├── requirements.txt             # Requisitos para rodar os códigos
-└── README.md                    
+├── .gitignore                    # Arquivos e pastas ignoradas
+├── LICENSE                       # Licença do projeto
+├── README.md                     # Informações úteis gerais do projeto
+└── requirements.txt              # Requisitos para rodar os códigos                
 ```
 
 ## Reprodução dos resultados
