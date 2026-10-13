@@ -118,6 +118,61 @@ def calcular_atraso_ponderado_total(instancia: Instancia, sequencia_de_visita) -
     return int(atraso_ponderado_total)
 
 # ========================================================================
+# OPERADORES
+
+# Tipos de vizinhança disponíveis para gerar sucessores
+TROCA = "troca"
+REALOCACAO = "realocacao"
+INVERSAO = "inversao"
+TIPOS_VIZINHANCA = (TROCA, REALOCACAO, INVERSAO)
+
+
+def aplicar_troca(solucao, posicao_a: int, posicao_b: int) -> list[int]:
+    """Devolve uma cópia da solução com os ativos das duas posições trocados."""
+    sucessor = list(solucao)
+    sucessor[posicao_a], sucessor[posicao_b] = (
+        sucessor[posicao_b],
+        sucessor[posicao_a],
+    )
+    return sucessor
+
+# ------------------------------------------------------------------------
+
+def aplicar_realocacao(
+    solucao,
+    posicao_origem: int,
+    posicao_destino: int,
+) -> list[int]:
+    """
+    Devolve uma cópia da solução com um ativo realocado.
+
+    O ativo é removido da posição de origem e reinserido de modo a
+    ocupar a posição de destino na nova sequência.
+    """
+    sucessor = list(solucao)
+    ativo = sucessor.pop(posicao_origem)
+    sucessor.insert(posicao_destino, ativo)
+
+    return sucessor
+
+# ------------------------------------------------------------------------
+
+def aplicar_inversao(
+    solucao,
+    posicao_inicial: int,
+    posicao_final: int,
+) -> list[int]:
+    """
+    Devolve uma cópia da solução com o trecho entre as 
+    duas posições invertido.
+    """
+    sucessor = list(solucao)
+    trecho = sucessor[posicao_inicial:posicao_final + 1]
+    sucessor[posicao_inicial:posicao_final + 1] = trecho[::-1]
+
+    return sucessor
+
+# ========================================================================
 
 class ProblemaManutencao:
     """
@@ -126,10 +181,18 @@ class ProblemaManutencao:
     Os algoritmos só chamam os métodos desta classe, sem saber nada
     sobre ativos, prazos ou deslocamentos.
     """
+    def __init__(
+        self,
+        instancia: Instancia,
+        semente: int | None = None,
+        tipo_vizinhanca: str = TROCA,
+    ):
+        """Prepara o problema, o gerador aleatório e o contador de avaliações."""
+        if tipo_vizinhanca not in TIPOS_VIZINHANCA:
+            raise ValueError(f"Tipo de vizinhança desconhecido: {tipo_vizinhanca}")
 
-    def __init__(self, instancia: Instancia, semente: int | None = None):
-        """Construtor da classe."""
         self.instancia = instancia
+        self.tipo_vizinhanca = tipo_vizinhanca
         self.gerador_aleatorio = np.random.default_rng(semente)
         self.quantidade_avaliacoes = 0
 
@@ -162,43 +225,103 @@ class ProblemaManutencao:
         """
         Gera, um de cada vez, todos os sucessores de uma solução.
 
-        Cada sucessor é obtido trocando de lugar dois ativos da sequência.
+        Os sucessores dependem do tipo de vizinhança escolhido.
         A solução original não é modificada.
         """
-        quantidade_ativos = len(solucao)
-
-        # Percorre todos os pares de posições (posicao_a < posicao_b)
-        for posicao_a in range(quantidade_ativos - 1):
-
-            for posicao_b in range(posicao_a + 1, quantidade_ativos):
-
-                # Troca os ativos de lugar em uma cópia da solução
-                sucessor = list(solucao)
-                sucessor[posicao_a], sucessor[posicao_b] = (
-                    sucessor[posicao_b],
-                    sucessor[posicao_a],
-                )
-                yield sucessor
+        if self.tipo_vizinhanca == TROCA:
+            return self._gerar_sucessores_por_troca(solucao)
+        
+        if self.tipo_vizinhanca == REALOCACAO:
+            return self._gerar_sucessores_por_realocacao(solucao)
+        
+        return self._gerar_sucessores_por_inversao(solucao)
 
     # --------------------------------------------------------------------
     def gerar_sucessor_aleatorio(self, solucao) -> list[int]:
         """
         Sorteia um único sucessor de uma solução.
 
-        O sucessor é obtido trocando de lugar dois ativos escolhidos
-        ao acaso. A solução original não é modificada.
+        O sorteio é uniforme entre os sucessores da vizinhança escolhida.
+        A solução original não é modificada.
         """
-        # Sorteia duas posições diferentes da sequência
+        if self.tipo_vizinhanca == TROCA:
+            return self._gerar_sucessor_aleatorio_por_troca(solucao)
+        
+        if self.tipo_vizinhanca == REALOCACAO:
+            return self._gerar_sucessor_aleatorio_por_realocacao(solucao)
+        
+        return self._gerar_sucessor_aleatorio_por_inversao(solucao)
+
+    # --------------------------------------------------------------------
+    def _gerar_sucessores_por_troca(self, solucao) -> Iterator[list[int]]:
+        """Gera os n(n-1)/2 sucessores obtidos trocando dois ativos de lugar."""
+        quantidade_ativos = len(solucao)
+
+        for posicao_a in range(quantidade_ativos - 1):
+            for posicao_b in range(posicao_a + 1, quantidade_ativos):
+                yield aplicar_troca(solucao, posicao_a, posicao_b)
+
+    # --------------------------------------------------------------------
+    def _gerar_sucessores_por_realocacao(self, solucao) -> Iterator[list[int]]:
+        """Gera os (n-1)^2 sucessores distintos obtidos realocando um ativo."""
+        quantidade_ativos = len(solucao)
+
+        for posicao_origem in range(quantidade_ativos):
+            for posicao_destino in range(quantidade_ativos):
+                if posicao_destino == posicao_origem:
+                    continue
+
+                # Mover um ativo uma posição à frente equivale a mover o seguinte
+                # uma posição atrás, então um dos dois movimentos é descartado
+                if posicao_destino == posicao_origem + 1:
+                    continue
+
+                yield aplicar_realocacao(solucao, posicao_origem, posicao_destino)
+
+    # --------------------------------------------------------------------
+    def _gerar_sucessores_por_inversao(self, solucao) -> Iterator[list[int]]:
+        """Gera os n(n-1)/2 sucessores obtidos invertendo um trecho da sequência."""
+        quantidade_ativos = len(solucao)
+
+        for posicao_inicial in range(quantidade_ativos - 1):
+            for posicao_final in range(posicao_inicial + 1, quantidade_ativos):
+                yield aplicar_inversao(solucao, posicao_inicial, posicao_final)
+
+    # --------------------------------------------------------------------
+    def _gerar_sucessor_aleatorio_por_troca(self, solucao) -> list[int]:
+        """Sorteia dois ativos diferentes e os troca de lugar."""
         posicao_a, posicao_b = self.gerador_aleatorio.choice(
             len(solucao),
             size=2,
             replace=False,
         )
+        return aplicar_troca(solucao, posicao_a, posicao_b)
 
-        # Troca os ativos de lugar em uma cópia da solução
-        sucessor = list(solucao)
-        sucessor[posicao_a], sucessor[posicao_b] = (
-            sucessor[posicao_b],
-            sucessor[posicao_a],
+    # --------------------------------------------------------------------
+    def _gerar_sucessor_aleatorio_por_realocacao(self, solucao) -> list[int]:
+        """Sorteia um ativo e uma nova posição para ele."""
+        while True:
+            posicao_origem, posicao_destino = self.gerador_aleatorio.choice(
+                len(solucao),
+                size=2,
+                replace=False,
+            )
+
+            # Descarta o movimento redundante 
+            # (mesma regra de _gerar_sucessores_por_realocacao)
+            if posicao_destino != posicao_origem + 1:
+                return aplicar_realocacao(solucao, posicao_origem, posicao_destino)
+
+    # --------------------------------------------------------------------
+    def _gerar_sucessor_aleatorio_por_inversao(self, solucao) -> list[int]:
+        """Sorteia dois extremos e inverte o trecho entre eles."""
+        posicao_a, posicao_b = self.gerador_aleatorio.choice(
+            len(solucao),
+            size=2,
+            replace=False,
         )
-        return sucessor
+        return aplicar_inversao(
+            solucao,
+            min(posicao_a, posicao_b),
+            max(posicao_a, posicao_b),
+        )
