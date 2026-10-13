@@ -32,6 +32,16 @@ class ResultadoDescidaGulosa(ResultadoBusca):
     # Cada ótimo local confirmado (nenhum sucessor melhora), um por reinício
     otimos_locais: list[tuple[int, ...]] = field(default_factory=list)
 
+    def obter_metricas_adicionais(self) -> dict:
+        """
+        Devolve passos de melhoria e quantidade de ótimos locais (total e distintos).
+        """
+        return {
+            "passos_melhoria": self.quantidade_passos_melhoria,
+            "otimos_locais": len(self.otimos_locais),
+            "otimos_locais_distintos": len(set(self.otimos_locais)),
+        }
+
 # ========================================================================
 
 def executar_descida_gulosa(

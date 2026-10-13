@@ -22,6 +22,7 @@ class ResultadoBusca:
 
     quantidade_avaliacoes_utilizadas: int = 0
 
+    # --------------------------------------------------------------------
     def registrar_se_melhor(
         self,
         solucao,
@@ -37,3 +38,8 @@ class ResultadoBusca:
             self.historico_convergencia.append(
                 (quantidade_avaliacoes, custo)
             )
+    
+    # --------------------------------------------------------------------
+    def obter_metricas_adicionais(self) -> dict:
+        """Devolve métricas específicas do algoritmo (vazio por padrão)."""
+        return {}
