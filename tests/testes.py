@@ -9,6 +9,13 @@ from src.problema_manutencao import (
     calcular_atraso_ponderado_total,
     ProblemaManutencao,
 )
+
+from src.algoritmos.alg_desc_gulosa import (
+    MELHOR_MELHORIA,
+    PRIMEIRA_MELHORIA,
+    executar_descida_gulosa,
+)
+
 # ========================================================================
 # FUNÇÕES AUXILIARES
 
@@ -44,6 +51,7 @@ def teste1_sequencia_identidade_instancia_pequena():
 
 # ------------------------------------------------------------------------
 def teste2_solucao_aleatoria_e_permutacao_valida():
+    """Verifica se soluções aleatórias são permutações válidas dos ativos."""
     problema = ProblemaManutencao(
         ler_instancia("instancias/manutencao_pequena.txt"),
         semente=1,
@@ -57,6 +65,7 @@ def teste2_solucao_aleatoria_e_permutacao_valida():
 
 # ------------------------------------------------------------------------
 def teste3_mesma_semente_gera_mesma_solucao():
+    """Verifica se a mesma semente gera soluções aleatórias idênticas."""
     instancia = ler_instancia("instancias/manutencao_pequena.txt")
 
     primeira = ProblemaManutencao(
@@ -73,6 +82,7 @@ def teste3_mesma_semente_gera_mesma_solucao():
 
 # ------------------------------------------------------------------------
 def teste4_contador_conta_cada_avaliacao():
+    """Verifica se o contador registra avaliações e pode ser zerado."""
     problema = ProblemaManutencao(
         ler_instancia("instancias/manutencao_pequena.txt"),
         semente=1,
@@ -88,6 +98,10 @@ def teste4_contador_conta_cada_avaliacao():
 
 # ------------------------------------------------------------------------
 def teste5_gerar_sucessores_cobre_toda_a_vizinhanca():
+    """
+    Verifica se todos os sucessores da vizinhança de troca 
+    são gerados corretamente.
+    """
     problema = ProblemaManutencao(
         ler_instancia("instancias/manutencao_pequena.txt"),
         semente=1,
@@ -111,6 +125,10 @@ def teste5_gerar_sucessores_cobre_toda_a_vizinhanca():
 
 # ------------------------------------------------------------------------
 def teste6_gerar_sucessores_nao_altera_solucao_nem_conta_avaliacoes():
+    """
+    Verifica se gerar sucessores não altera a solução original 
+    nem o contador.
+    """
     problema = ProblemaManutencao(
         ler_instancia("instancias/manutencao_pequena.txt"),
         semente=1,
@@ -129,6 +147,10 @@ def teste6_gerar_sucessores_nao_altera_solucao_nem_conta_avaliacoes():
 
 # ------------------------------------------------------------------------
 def teste7_sucessor_aleatorio_e_permutacao_valida_com_duas_trocas():
+    """
+    Verifica se sucessores aleatórios são permutações válidas 
+    com duas posições trocadas.
+    """
     problema = ProblemaManutencao(
         ler_instancia("instancias/manutencao_pequena.txt"),
         semente=1,
@@ -141,7 +163,71 @@ def teste7_sucessor_aleatorio_e_permutacao_valida_com_duas_trocas():
         assert sorted(sucessor) == list(range(1, 13))
         assert contar_posicoes_diferentes(solucao, sucessor) == 2
 
+# ------------------------------------------------------------------------
+def teste8_descida_gulosa_respeita_orcamento_exato():
+    """Verifica se o algoritmo para exatamente ao atingir o orçamento."""
+    instancia = ler_instancia("instancias/manutencao_pequena.txt")
+
+    for variante in (MELHOR_MELHORIA, PRIMEIRA_MELHORIA):
+        problema = ProblemaManutencao(instancia, semente=1)
+        resultado = executar_descida_gulosa(problema, 5000, variante)
+
+        assert resultado.quantidade_avaliacoes_utilizadas == 5000
+        assert problema.quantidade_avaliacoes == 5000
+
+# ------------------------------------------------------------------------
+def teste9_descida_gulosa_resultado_e_consistente():
+    """Verifica solução, custo e histórico de convergência do resultado."""
+    instancia = ler_instancia("instancias/manutencao_pequena.txt")
+
+    for variante in (MELHOR_MELHORIA, PRIMEIRA_MELHORIA):
+        problema = ProblemaManutencao(instancia, semente=2)
+        resultado = executar_descida_gulosa(problema, 5000, variante)
+
+        # A melhor solução deve ser uma permutação válida
+        assert sorted(resultado.melhor_solucao) == list(range(1, 13))
+
+        # O custo informado deve coincidir com o recalculado do zero
+        assert resultado.melhor_custo == calcular_atraso_ponderado_total(
+            instancia,
+            resultado.melhor_solucao,
+        )
+
+        # O histórico deve ter avaliações crescentes e custos estritamente decrescentes
+        historico = resultado.historico_convergencia
+        for (avaliacoes_antes, custo_antes), (avaliacoes_depois, custo_depois) in zip(
+            historico,
+            historico[1:],
+        ):
+            assert avaliacoes_antes < avaliacoes_depois
+            assert custo_antes > custo_depois
+
+# ------------------------------------------------------------------------
+def teste10_otimos_locais_reportados_sao_mesmo_otimos_locais():
+    """Verifica se nenhum sucessor de um ótimo local reportado tem custo menor."""
+    instancia = ler_instancia("instancias/manutencao_pequena.txt")
+
+    for variante in (MELHOR_MELHORIA, PRIMEIRA_MELHORIA):
+        problema = ProblemaManutencao(instancia, semente=3)
+        resultado = executar_descida_gulosa(problema, 5000, variante)
+
+        assert len(resultado.otimos_locais) > 0
+
+        for otimo_local in resultado.otimos_locais:
+            custo_otimo_local = calcular_atraso_ponderado_total(
+                instancia,
+                otimo_local,
+            )
+
+            for sucessor in problema.gerar_sucessores(list(otimo_local)):
+                custo_sucessor = calcular_atraso_ponderado_total(
+                    instancia,
+                    sucessor,
+                )
+                assert custo_sucessor >= custo_otimo_local
+
 # ========================================================================
+# EXECUÇÃO DOS TESTES
 
 if __name__ == "__main__":
     # Tenta rodar todos os testes:
@@ -152,5 +238,8 @@ if __name__ == "__main__":
     teste5_gerar_sucessores_cobre_toda_a_vizinhanca()
     teste6_gerar_sucessores_nao_altera_solucao_nem_conta_avaliacoes()
     teste7_sucessor_aleatorio_e_permutacao_valida_com_duas_trocas()
+    teste8_descida_gulosa_respeita_orcamento_exato()
+    teste9_descida_gulosa_resultado_e_consistente()
+    teste10_otimos_locais_reportados_sao_mesmo_otimos_locais()
 
     print("Todos os testes passaram.") # Se algum falhar, não será impresso
