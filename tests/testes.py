@@ -8,6 +8,13 @@ from src.problema_manutencao import (
     ler_instancia, 
     calcular_atraso_ponderado_total,
     ProblemaManutencao,
+    INVERSAO,
+    REALOCACAO,
+    TIPOS_VIZINHANCA,
+    TROCA,
+    aplicar_inversao,
+    aplicar_realocacao, 
+    aplicar_troca,
 )
 
 from src.algoritmos.alg_desc_gulosa import (
@@ -226,11 +233,125 @@ def teste10_otimos_locais_reportados_sao_mesmo_otimos_locais():
                 )
                 assert custo_sucessor >= custo_otimo_local
 
+# ------------------------------------------------------------------------
+
+def teste11_operadores_reproduzem_os_exemplos_da_figura_3():
+    """Confere cada operador com os exemplos da Figura 3 do enunciado."""
+    solucao = [3, 7, 1, 5, 2, 8]
+
+    assert aplicar_troca(solucao, 1, 4) == [3, 2, 1, 5, 7, 8]
+    assert aplicar_realocacao(solucao, 1, 4) == [3, 1, 5, 2, 7, 8]
+    assert aplicar_inversao(solucao, 1, 4) == [3, 2, 5, 1, 7, 8]
+
+    # Os operadores devem devolver cópias, sem alterar a solução original
+    assert solucao == [3, 7, 1, 5, 2, 8]
+
+# ------------------------------------------------------------------------
+
+def teste12_tamanho_das_vizinhancas_confere_com_o_relatorio():
+    """
+    Confere o número de sucessores distintos com a Tabela 1 do relatório.
+    """
+    instancia = ler_instancia("instancias/manutencao_pequena.txt")
+
+    tamanhos_esperados = {
+        12: {TROCA: 66, REALOCACAO: 121, INVERSAO: 66},
+        50: {TROCA: 1225, REALOCACAO: 2401, INVERSAO: 1225},
+        150: {TROCA: 11175, REALOCACAO: 22201, INVERSAO: 11175},
+    }
+
+    for quantidade_ativos, tamanhos in tamanhos_esperados.items():
+        solucao = list(range(1, quantidade_ativos + 1))
+
+        for tipo_vizinhanca, tamanho_esperado in tamanhos.items():
+            problema = ProblemaManutencao(
+                instancia,
+                semente=1,
+                tipo_vizinhanca=tipo_vizinhanca,
+            )
+            sucessores = [
+                tuple(sucessor) for sucessor in problema.gerar_sucessores(solucao)
+            ]
+
+            assert len(sucessores) == tamanho_esperado
+            assert len(set(sucessores)) == tamanho_esperado
+
+# ------------------------------------------------------------------------
+
+def teste13_sucessores_sao_permutacoes_validas_e_diferentes_da_original():
+    """
+    Verifica validade e diferença em relação à original, para cada vizinhança.
+    """
+    instancia = ler_instancia("instancias/manutencao_pequena.txt")
+
+    for tipo_vizinhanca in TIPOS_VIZINHANCA:
+        problema = ProblemaManutencao(
+            instancia,
+            semente=1,
+            tipo_vizinhanca=tipo_vizinhanca,
+        )
+        solucao = problema.gerar_solucao_aleatoria()
+        copia_da_solucao = list(solucao)
+
+        for sucessor in problema.gerar_sucessores(solucao):
+            assert sorted(sucessor) == list(range(1, 13))
+            assert sucessor != solucao
+
+        assert solucao == copia_da_solucao
+
+# ------------------------------------------------------------------------
+
+def teste14_sucessor_aleatorio_pertence_a_vizinhanca_e_a_cobre_toda():
+    """
+    Verifica se o sorteio só gera sucessores válidos e alcança todos eles.
+    """
+    instancia = ler_instancia("instancias/manutencao_pequena.txt")
+
+    for tipo_vizinhanca in TIPOS_VIZINHANCA:
+        problema = ProblemaManutencao(
+            instancia,
+            semente=1,
+            tipo_vizinhanca=tipo_vizinhanca,
+        )
+        solucao = problema.gerar_solucao_aleatoria()
+
+        vizinhanca = {
+            tuple(sucessor)
+            for sucessor in problema.gerar_sucessores(solucao)
+        }
+
+        sorteados = {
+            tuple(problema.gerar_sucessor_aleatorio(solucao))
+            for _ in range(5000)
+        }
+
+        # Todo sorteado deve estar na vizinhança, e a vizinhança toda deve ser alcançável
+        assert sorteados == vizinhanca
+
+# ------------------------------------------------------------------------
+
+def teste15_tipo_de_vizinhanca_desconhecido_gera_erro():
+    """Verifica se um tipo de vizinhança inválido é rejeitado."""
+    instancia = ler_instancia("instancias/manutencao_pequena.txt")
+
+    erro_levantado = False
+    try:
+        ProblemaManutencao(
+            instancia,
+            tipo_vizinhanca="invalida",
+        )
+    except ValueError:
+        erro_levantado = True
+
+    assert erro_levantado
+
 # ========================================================================
 # EXECUÇÃO DOS TESTES
 
 if __name__ == "__main__":
+    
     # Tenta rodar todos os testes:
+
     teste1_sequencia_identidade_instancia_pequena()
     teste2_solucao_aleatoria_e_permutacao_valida()
     teste3_mesma_semente_gera_mesma_solucao()
@@ -241,5 +362,10 @@ if __name__ == "__main__":
     teste8_descida_gulosa_respeita_orcamento_exato()
     teste9_descida_gulosa_resultado_e_consistente()
     teste10_otimos_locais_reportados_sao_mesmo_otimos_locais()
+    teste11_operadores_reproduzem_os_exemplos_da_figura_3()
+    teste12_tamanho_das_vizinhancas_confere_com_o_relatorio()
+    teste13_sucessores_sao_permutacoes_validas_e_diferentes_da_original()
+    teste14_sucessor_aleatorio_pertence_a_vizinhanca_e_a_cobre_toda()
+    teste15_tipo_de_vizinhanca_desconhecido_gera_erro()
 
     print("Todos os testes passaram.") # Se algum falhar, não será impresso
