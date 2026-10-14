@@ -174,6 +174,36 @@ def aplicar_inversao(
 
 # ========================================================================
 
+class Sucessor(list):
+    """
+    Sequência de visita obtida por um movimento a partir de outra solução.
+
+    Comporta-se como uma lista comum, mas também guarda a primeira posição
+    em que difere da solução de origem, o que permite a avaliação incremental.
+    """
+
+    def __init__(self, sequencia, primeira_posicao_alterada: int):
+        """
+        Cria o sucessor a partir da sequência e da primeira posição alterada.
+        """
+        super().__init__(sequencia)
+        self.primeira_posicao_alterada = int(primeira_posicao_alterada)
+
+
+@dataclass
+class EstadoSolucao:
+    """
+    Valores intermediários da avaliação de uma solução, 
+    reaproveitados pelos sucessores.
+    """
+    # instantes_conclusao[k]: instante de conclusão do ativo na posição k
+    instantes_conclusao: list[int]
+
+    # custos_acumulados[k]: atraso ponderado somando as posições 0 até k
+    custos_acumulados: list[int]
+
+# ========================================================================
+
 class ProblemaManutencao:
     """
     Interface entre os algoritmos de busca e o problema de manutenção.
@@ -221,6 +251,84 @@ class ProblemaManutencao:
         self.quantidade_avaliacoes = 0
 
     # --------------------------------------------------------------------
+    def construir_estado(self, sequencia_de_visita) -> EstadoSolucao:
+        """
+        Calcula os valores intermediários da avaliação de uma solução.
+
+        Não conta como avaliação: serve apenas para preparar a avaliação
+        incremental dos sucessores de uma solução cujo custo já foi avaliado.
+        """
+        tempos_deslocamento = self.instancia.tempos_deslocamento
+        duracoes_servico = self.instancia.duracoes_servico
+        prazos = self.instancia.prazos
+        pesos_criticidade = self.instancia.pesos_criticidade
+
+        instante_atual = 0
+        ativo_anterior = 0  # a equipe começa na base, que é o ponto de índice 0
+        custo_acumulado = 0
+        instantes_conclusao = []
+        custos_acumulados = []
+
+        for ativo in sequencia_de_visita:
+            instante_atual += tempos_deslocamento[ativo_anterior, ativo]
+            instante_atual += duracoes_servico[ativo]
+
+            atraso = instante_atual - prazos[ativo]
+            if atraso > 0:
+                custo_acumulado += pesos_criticidade[ativo] * atraso
+
+            instantes_conclusao.append(int(instante_atual))
+            custos_acumulados.append(int(custo_acumulado))
+            ativo_anterior = ativo
+
+        return EstadoSolucao(instantes_conclusao, custos_acumulados)
+
+    # --------------------------------------------------------------------
+    def avaliar_sucessor(
+        self,
+        estado_solucao_origem: EstadoSolucao,
+        sucessor: Sucessor,
+    ) -> int:
+        """
+        Calcula h(π) de um sucessor reaproveitando o prefixo da solução de origem.
+
+        As posições anteriores à primeira alterada têm os mesmos instantes de
+        conclusão e o mesmo custo da solução de origem, então só o restante da
+        sequência é recalculado. Conta uma avaliação do orçamento, como `avaliar`.
+        """
+        self.quantidade_avaliacoes += 1
+
+        tempos_deslocamento = self.instancia.tempos_deslocamento
+        duracoes_servico = self.instancia.duracoes_servico
+        prazos = self.instancia.prazos
+        pesos_criticidade = self.instancia.pesos_criticidade
+
+        primeira_posicao = sucessor.primeira_posicao_alterada
+
+        # Retoma o cálculo do ponto em que o prefixo inalterado termina
+        if primeira_posicao == 0:
+            instante_atual = 0
+            custo_acumulado = 0
+            ativo_anterior = 0  # base
+        else:
+            instante_atual = estado_solucao_origem.instantes_conclusao[primeira_posicao - 1]
+            custo_acumulado = estado_solucao_origem.custos_acumulados[primeira_posicao - 1]
+            ativo_anterior = sucessor[primeira_posicao - 1]
+
+        # Recalcula apenas o trecho a partir da primeira posição alterada
+        for ativo in sucessor[primeira_posicao:]:
+            instante_atual += tempos_deslocamento[ativo_anterior, ativo]
+            instante_atual += duracoes_servico[ativo]
+
+            atraso = instante_atual - prazos[ativo]
+            if atraso > 0:
+                custo_acumulado += pesos_criticidade[ativo] * atraso
+
+            ativo_anterior = ativo
+
+        return int(custo_acumulado)
+
+    # --------------------------------------------------------------------
     def gerar_sucessores(self, solucao) -> Iterator[list[int]]:
         """
         Gera, um de cada vez, todos os sucessores de uma solução.
@@ -259,7 +367,10 @@ class ProblemaManutencao:
 
         for posicao_a in range(quantidade_ativos - 1):
             for posicao_b in range(posicao_a + 1, quantidade_ativos):
-                yield aplicar_troca(solucao, posicao_a, posicao_b)
+                yield Sucessor(
+                    aplicar_troca(solucao, posicao_a, posicao_b),
+                    primeira_posicao_alterada=posicao_a,
+                )
 
     # --------------------------------------------------------------------
     def _gerar_sucessores_por_realocacao(self, solucao) -> Iterator[list[int]]:
@@ -276,7 +387,10 @@ class ProblemaManutencao:
                 if posicao_destino == posicao_origem + 1:
                     continue
 
-                yield aplicar_realocacao(solucao, posicao_origem, posicao_destino)
+                yield Sucessor(
+                    aplicar_realocacao(solucao, posicao_origem, posicao_destino),
+                    primeira_posicao_alterada=min(posicao_origem, posicao_destino),
+                )
 
     # --------------------------------------------------------------------
     def _gerar_sucessores_por_inversao(self, solucao) -> Iterator[list[int]]:
@@ -285,7 +399,10 @@ class ProblemaManutencao:
 
         for posicao_inicial in range(quantidade_ativos - 1):
             for posicao_final in range(posicao_inicial + 1, quantidade_ativos):
-                yield aplicar_inversao(solucao, posicao_inicial, posicao_final)
+                yield Sucessor(
+                    aplicar_inversao(solucao, posicao_inicial, posicao_final),
+                    primeira_posicao_alterada=posicao_inicial,
+                )
 
     # --------------------------------------------------------------------
     def _gerar_sucessor_aleatorio_por_troca(self, solucao) -> list[int]:
@@ -295,7 +412,10 @@ class ProblemaManutencao:
             size=2,
             replace=False,
         )
-        return aplicar_troca(solucao, posicao_a, posicao_b)
+        return Sucessor(
+            aplicar_troca(solucao, posicao_a, posicao_b),
+            primeira_posicao_alterada=min(posicao_a, posicao_b),
+        )
 
     # --------------------------------------------------------------------
     def _gerar_sucessor_aleatorio_por_realocacao(self, solucao) -> list[int]:
@@ -310,7 +430,10 @@ class ProblemaManutencao:
             # Descarta o movimento redundante 
             # (mesma regra de _gerar_sucessores_por_realocacao)
             if posicao_destino != posicao_origem + 1:
-                return aplicar_realocacao(solucao, posicao_origem, posicao_destino)
+                return Sucessor(
+                    aplicar_realocacao(solucao, posicao_origem, posicao_destino),
+                    primeira_posicao_alterada=min(posicao_origem, posicao_destino),
+                )
 
     # --------------------------------------------------------------------
     def _gerar_sucessor_aleatorio_por_inversao(self, solucao) -> list[int]:
@@ -320,8 +443,11 @@ class ProblemaManutencao:
             size=2,
             replace=False,
         )
-        return aplicar_inversao(
-            solucao,
-            min(posicao_a, posicao_b),
-            max(posicao_a, posicao_b),
+        
+        posicao_inicial = min(posicao_a, posicao_b)
+        posicao_final = max(posicao_a, posicao_b)
+
+        return Sucessor(
+            aplicar_inversao(solucao, posicao_inicial, posicao_final),
+            primeira_posicao_alterada=posicao_inicial,
         )
