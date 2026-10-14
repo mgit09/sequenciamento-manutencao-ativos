@@ -101,6 +101,11 @@ def _descer_ate_otimo_local(
     (False quando o orçamento esgotou antes de terminar a varredura).
     """
     while True:
+
+        # Prepara os valores intermediários da solução corrente 
+        # para a avaliação incremental
+        estado_corrente = problema.construir_estado(solucao_corrente)
+
         melhor_sucessor = None
         melhor_custo_sucessor = custo_corrente
 
@@ -108,7 +113,11 @@ def _descer_ate_otimo_local(
             if problema.quantidade_avaliacoes >= orcamento_avaliacoes:
                 return solucao_corrente, False
 
-            custo_sucessor = problema.avaliar(sucessor)
+            custo_sucessor = problema.avaliar_sucessor(
+                estado_corrente,
+                sucessor,
+            )
+
             resultado.registrar_se_melhor(
                 sucessor,
                 custo_sucessor,
