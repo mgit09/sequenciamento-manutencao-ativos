@@ -15,6 +15,7 @@ from src.problema_manutencao import (
     aplicar_inversao,
     aplicar_realocacao, 
     aplicar_troca,
+    Sucessor,
 )
 
 from src.algoritmos.alg_desc_gulosa import (
@@ -32,6 +33,14 @@ def contar_posicoes_diferentes(sequencia_a, sequencia_b) -> int:
         ativo_a != ativo_b
         for ativo_a, ativo_b in zip(sequencia_a, sequencia_b)
     )
+
+# ------------------------------------------------------------------------
+
+def encontrar_primeira_posicao_diferente(sequencia_a, sequencia_b) -> int:
+    """Devolve a primeira posição em que duas sequências têm ativos diferentes."""
+    for posicao, (ativo_a, ativo_b) in enumerate(zip(sequencia_a, sequencia_b)):
+        if ativo_a != ativo_b:
+            return posicao
 
 # ========================================================================
 # TESTES
@@ -345,6 +354,91 @@ def teste15_tipo_de_vizinhanca_desconhecido_gera_erro():
 
     assert erro_levantado
 
+# ------------------------------------------------------------------------
+
+def teste16_primeira_posicao_alterada_esta_correta():
+    """
+    Verifica que cada sucessor informa corretamente onde começa 
+    a diferir da origem.
+    """
+    instancia = ler_instancia("instancias/manutencao_pequena.txt")
+
+    for tipo_vizinhanca in TIPOS_VIZINHANCA:
+        problema = ProblemaManutencao(
+            instancia,
+            semente=1,
+            tipo_vizinhanca=tipo_vizinhanca,
+        )
+        solucao = problema.gerar_solucao_aleatoria()
+
+        for sucessor in problema.gerar_sucessores(solucao):
+            assert isinstance(sucessor, Sucessor)
+            assert sucessor.primeira_posicao_alterada == encontrar_primeira_posicao_diferente(
+                solucao,
+                sucessor,
+            )
+
+# ------------------------------------------------------------------------
+
+def teste17_avaliacao_incremental_coincide_com_avaliacao_completa():
+    """Compara a avaliação incremental com a completa em todas as vizinhanças e instâncias."""
+    for nome_instancia in ("pequena", "media"):
+        instancia = ler_instancia(f"instancias/manutencao_{nome_instancia}.txt")
+
+        for tipo_vizinhanca in TIPOS_VIZINHANCA:
+            problema = ProblemaManutencao(
+                instancia,
+                semente=1,
+                tipo_vizinhanca=tipo_vizinhanca,
+            )
+
+            for _ in range(5):
+                solucao = problema.gerar_solucao_aleatoria()
+                estado = problema.construir_estado(solucao)
+
+                # O estado deve terminar com o custo completo da própria solução
+                assert estado.custos_acumulados[-1] == calcular_atraso_ponderado_total(
+                    instancia,
+                    solucao,
+                )
+
+                if nome_instancia == "pequena":
+                    sucessores = list(problema.gerar_sucessores(solucao))
+                else:
+                    sucessores = [
+                        problema.gerar_sucessor_aleatorio(solucao)
+                        for _ in range(300)
+                    ]
+
+                for sucessor in sucessores:
+                    assert problema.avaliar_sucessor(
+                        estado,
+                        sucessor,
+                    ) == calcular_atraso_ponderado_total(
+                        instancia,
+                        sucessor,
+                    )
+
+# ------------------------------------------------------------------------
+
+def teste18_avaliar_sucessor_conta_uma_avaliacao_e_construir_estado_nao_conta():
+    """Verifica a contagem de avaliações da avaliação incremental."""
+    problema = ProblemaManutencao(
+        ler_instancia("instancias/manutencao_pequena.txt"),
+        semente=1,
+    )
+    solucao = problema.gerar_solucao_aleatoria()
+
+    estado = problema.construir_estado(solucao)
+    assert problema.quantidade_avaliacoes == 0
+
+    for _ in range(7):
+        problema.avaliar_sucessor(
+            estado,
+            problema.gerar_sucessor_aleatorio(solucao),
+        )
+    assert problema.quantidade_avaliacoes == 7
+
 # ========================================================================
 # EXECUÇÃO DOS TESTES
 
@@ -367,5 +461,8 @@ if __name__ == "__main__":
     teste13_sucessores_sao_permutacoes_validas_e_diferentes_da_original()
     teste14_sucessor_aleatorio_pertence_a_vizinhanca_e_a_cobre_toda()
     teste15_tipo_de_vizinhanca_desconhecido_gera_erro()
+    teste16_primeira_posicao_alterada_esta_correta()
+    teste17_avaliacao_incremental_coincide_com_avaliacao_completa()
+    teste18_avaliar_sucessor_conta_uma_avaliacao_e_construir_estado_nao_conta()
 
     print("Todos os testes passaram.") # Se algum falhar, não será impresso
