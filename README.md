@@ -48,6 +48,7 @@ sequenciamento-manutencao-ativos
 ├── resultados/                          # Arquivos *.csv gerados pelos experimentos
 │
 ├── scripts/
+│   ├── comparar_vizinhancas.py          # Compara as vizinhanças (troca, realocação, inversão) para T2
 │   ├── executar_experimentos.py         # Executa os algoritmos nas instâncias e salva os *.csv
 │   ├── medir_avaliacao_incremental.py   # Mede o ganho de tempo da avaliação incremental
 │   └── gerar_analises.py                # Lê os *.csv e gera tabelas, boxplots, curvas, testes estatísticos
@@ -100,6 +101,28 @@ os resultados oficiais.
 
 Gera o arquivo `resultados/tempo_avaliacao_incremental.csv`, com os tempos da
 avaliação completa e da incremental para cada instância e vizinhança.
+
+### Comparação das vizinhanças (Tarefa T2)
+
+Compara os três operadores de vizinhança (`troca`, `realocacao` e `inversao`)
+utilizando descida gulosa com reinício aleatório sob o mesmo orçamento de avaliações:
+
+    python -m scripts.comparar_vizinhancas
+
+Opções disponíveis:
+- `--instancias`: instâncias a avaliar (`pequena`, `media`, `grande`). Padrão: todas.
+- `--vizinhancas`: vizinhanças a testar (`troca`, `realocacao`, `inversao`). Padrão: todas.
+- `--variante`: variante de descida (`primeira_melhoria` ou `melhor_melhoria`). Padrão: `primeira_melhoria`.
+- `--execucoes`: número de execuções independentes por combinação (sobrescreve o padrão do protocolo).
+- `--orcamento`: orçamento de avaliações por execução (sobrescreve o padrão do protocolo).
+- `--pasta-saida`: diretório onde os arquivos serão salvos (padrão: `resultados`).
+
+Exemplo para teste rápido:
+
+    python -m scripts.comparar_vizinhancas --instancias pequena --execucoes 5 --orcamento 10000
+
+Arquivo gerado:
+- `resultados/tabela_comparacao_vizinhancas.csv`: tabela consolidada com métricas agrupadas (médias, desvios, medianas, melhor $h$, passos médios, ótimos distintos médios e tempo médio).
 
 ### Tabelas e figuras do relatório
 
