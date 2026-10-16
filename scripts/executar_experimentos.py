@@ -27,6 +27,9 @@ from src.algoritmos.alg_desc_gulosa import (
     PRIMEIRA_MELHORIA,
     executar_descida_gulosa,
 )
+from src.algoritmos.alg_simulated_annealing import (
+    executar_simulated_annealing,
+)
 from src.problema_manutencao import (
     ProblemaManutencao, 
     ler_instancia
@@ -72,6 +75,7 @@ ALGORITMOS = {
         executar_descida_gulosa,
         variante=PRIMEIRA_MELHORIA,
     ),
+    "simulated_annealing": executar_simulated_annealing,
 }
 
 # ========================================================================
@@ -80,6 +84,7 @@ def executar_instancia(
     nome_instancia: str,
     configuracao: ConfiguracaoInstancia,
     pasta_saida: Path,
+    algoritmos_a_executar: list[str] | None = None,
 ):
     """Roda todos os algoritmos numa instância e salva os resultados em .csv."""
     instancia = ler_instancia(configuracao.caminho_arquivo)
@@ -90,7 +95,10 @@ def executar_instancia(
     linhas_resumo = []
     linhas_convergencia = []
 
-    for nome_algoritmo, executar_algoritmo in ALGORITMOS.items():
+    nomes_algoritmos = algoritmos_a_executar or list(ALGORITMOS)
+
+    for nome_algoritmo in nomes_algoritmos:
+        executar_algoritmo = ALGORITMOS[nome_algoritmo]
 
         for semente in range(configuracao.quantidade_execucoes):
 
@@ -168,6 +176,13 @@ def ler_argumentos() -> argparse.Namespace:
         help="substitui o orçamento de avaliações do protocolo (útil para testes rápidos)",
     )
     leitor.add_argument(
+        "--algoritmos",
+        nargs="+",
+        choices=list(ALGORITMOS),
+        default=list(ALGORITMOS),
+        help="algoritmos a executar (padrão: todos)",
+    )
+    leitor.add_argument(
         "--pasta-saida",
         default="resultados",
         help="pasta onde os .csv serão gravados (padrão: resultados)",
@@ -203,6 +218,7 @@ def main():
             nome_instancia,
             configuracao,
             pasta_saida,
+            algoritmos_a_executar=argumentos.algoritmos,
         )
 
 
