@@ -23,6 +23,9 @@ from src.algoritmos.alg_desc_gulosa import (
     PRIMEIRA_MELHORIA,
     executar_descida_gulosa,
 )
+from src.algoritmos.alg_simulated_annealing import (
+    executar_simulated_annealing,
+)
 
 # ========================================================================
 # FUNÇÕES AUXILIARES
@@ -439,6 +442,140 @@ def teste18_avaliar_sucessor_conta_uma_avaliacao_e_construir_estado_nao_conta():
         )
     assert problema.quantidade_avaliacoes == 7
 
+# ------------------------------------------------------------------------
+
+def teste19_simulated_annealing_respeita_orcamento_exato():
+    """Verifica se o simulated annealing para exatamente ao atingir o orçamento."""
+    instancia = ler_instancia("instancias/manutencao_pequena.txt")
+    problema = ProblemaManutencao(instancia, semente=1)
+
+    resultado = executar_simulated_annealing(problema, 5000)
+
+    assert resultado.quantidade_avaliacoes_utilizadas == 5000
+    assert problema.quantidade_avaliacoes == 5000
+
+# ------------------------------------------------------------------------
+
+def teste20_simulated_annealing_resultado_e_consistente():
+    """Verifica solução, custo e histórico de convergência do simulated annealing."""
+    instancia = ler_instancia("instancias/manutencao_pequena.txt")
+    problema = ProblemaManutencao(instancia, semente=2)
+
+    resultado = executar_simulated_annealing(problema, 5000)
+
+    # A melhor solução deve ser uma permutação válida dos ativos
+    assert sorted(resultado.melhor_solucao) == list(range(1, 13))
+
+    # O custo informado deve coincidir com o recalculado do zero
+    assert resultado.melhor_custo == calcular_atraso_ponderado_total(
+        instancia,
+        resultado.melhor_solucao,
+    )
+
+    # O histórico deve ter avaliações crescentes e custos decrescentes
+    historico = resultado.historico_convergencia
+    for (avaliacoes_antes, custo_antes), (avaliacoes_depois, custo_depois) in zip(
+        historico,
+        historico[1:],
+    ):
+        assert avaliacoes_antes < avaliacoes_depois
+        assert custo_antes > custo_depois
+
+# ------------------------------------------------------------------------
+
+def teste21_simulated_annealing_garante_vizinhanca_de_inversao():
+    """Verifica se o simulated annealing utiliza obrigatoriamente vizinhança de inversão."""
+    instancia = ler_instancia("instancias/manutencao_pequena.txt")
+    # Inicializa com troca propositalmente
+    problema = ProblemaManutencao(instancia, semente=1, tipo_vizinhanca=TROCA)
+
+    executar_simulated_annealing(problema, 100)
+
+    # O algoritmo deve ter ajustado para inversão
+    assert problema.tipo_vizinhanca == INVERSAO
+
+# ------------------------------------------------------------------------
+
+def teste22_simulated_annealing_temperatura_alta_aceita_quase_todas_pioras():
+    """Com temperatura muito alta, comporta-se como random walk aceitando pioras."""
+    instancia = ler_instancia("instancias/manutencao_pequena.txt")
+    problema = ProblemaManutencao(instancia, semente=3)
+
+    # Temperatura extrema: e^(-Δh / T) ≈ 1
+    resultado = executar_simulated_annealing(
+        problema,
+        1000,
+        temperatura_inicial=1e9,
+        temperatura_final=1e8,
+    )
+
+    assert resultado.quantidade_piores_gerados > 0
+    taxa_aceite_piores = (
+        resultado.quantidade_piores_aceitos / resultado.quantidade_piores_gerados
+    )
+    # Deve aceitar praticamente 100% dos movimentos piores
+    assert taxa_aceite_piores >= 0.98
+
+# ------------------------------------------------------------------------
+
+def teste23_simulated_annealing_temperatura_baixa_rejeita_pioras():
+    """Com temperatura próxima de zero, não aceita nenhum movimento pior."""
+    instancia = ler_instancia("instancias/manutencao_pequena.txt")
+    problema = ProblemaManutencao(instancia, semente=4)
+
+    # Temperatura minúscula: e^(-Δh / T) ≈ 0
+    resultado = executar_simulated_annealing(
+        problema,
+        1000,
+        temperatura_inicial=1e-6,
+        temperatura_final=1e-7,
+    )
+
+    assert resultado.quantidade_piores_gerados > 0
+    # Nenhuma piora deve ser aceita
+    assert resultado.quantidade_piores_aceitos == 0
+
+# ------------------------------------------------------------------------
+
+def teste24_simulated_annealing_taxa_aceitacao_decresce_ao_longo_da_tempera():
+    """Verifica se a taxa de aceitação decresce do início até o final da têmpera."""
+    instancia = ler_instancia("instancias/manutencao_pequena.txt")
+    problema = ProblemaManutencao(instancia, semente=5)
+
+    resultado = executar_simulated_annealing(
+        problema,
+        15000,
+        tamanho_janela_taxa=1000,
+    )
+
+    assert len(resultado.historico_taxa_aceitacao) >= 3
+
+    # Taxa nas primeiras janelas versus nas últimas
+    taxa_inicial = resultado.historico_taxa_aceitacao[0][2]
+    taxa_final = resultado.historico_taxa_aceitacao[-1][2]
+
+    # No início aceita a grande maioria das pioras (~70-80%), no final quase nada (< 5%)
+    assert taxa_inicial > 0.60
+    assert taxa_final < 0.05
+    assert taxa_inicial > taxa_final
+
+# ------------------------------------------------------------------------
+
+def teste25_simulated_annealing_reprodutibilidade_com_mesma_semente():
+    """Verifica se duas execuções com a mesma semente geram exatamente o mesmo resultado."""
+    instancia = ler_instancia("instancias/manutencao_pequena.txt")
+
+    problema_1 = ProblemaManutencao(instancia, semente=42)
+    resultado_1 = executar_simulated_annealing(problema_1, 5000)
+
+    problema_2 = ProblemaManutencao(instancia, semente=42)
+    resultado_2 = executar_simulated_annealing(problema_2, 5000)
+
+    assert resultado_1.melhor_solucao == resultado_2.melhor_solucao
+    assert resultado_1.melhor_custo == resultado_2.melhor_custo
+    assert resultado_1.historico_convergencia == resultado_2.historico_convergencia
+    assert resultado_1.quantidade_movimentos_aceitos == resultado_2.quantidade_movimentos_aceitos
+
 # ========================================================================
 # EXECUÇÃO DOS TESTES
 
@@ -464,5 +601,12 @@ if __name__ == "__main__":
     teste16_primeira_posicao_alterada_esta_correta()
     teste17_avaliacao_incremental_coincide_com_avaliacao_completa()
     teste18_avaliar_sucessor_conta_uma_avaliacao_e_construir_estado_nao_conta()
+    teste19_simulated_annealing_respeita_orcamento_exato()
+    teste20_simulated_annealing_resultado_e_consistente()
+    teste21_simulated_annealing_garante_vizinhanca_de_inversao()
+    teste22_simulated_annealing_temperatura_alta_aceita_quase_todas_pioras()
+    teste23_simulated_annealing_temperatura_baixa_rejeita_pioras()
+    teste24_simulated_annealing_taxa_aceitacao_decresce_ao_longo_da_tempera()
+    teste25_simulated_annealing_reprodutibilidade_com_mesma_semente()
 
     print("Todos os testes passaram.") # Se algum falhar, não será impresso
