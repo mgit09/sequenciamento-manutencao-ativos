@@ -202,8 +202,8 @@ def ler_argumentos() -> argparse.Namespace:
     )
     leitor.add_argument(
         "--pasta-saida",
-        default="resultados",
-        help="pasta onde os .csv serão gravados (padrão: resultados)",
+        default="resultados/experimentos",
+        help="pasta onde os .csv serão gravados (padrão: resultados/experimentos)",
     )
     return leitor.parse_args()
 
