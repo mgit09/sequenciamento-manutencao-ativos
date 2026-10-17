@@ -45,13 +45,17 @@ Se tudo estiver correto, a mensagem "Todos os testes passaram." é exibida.
 sequenciamento-manutencao-ativos
 │
 ├── instancias/                          # Instâncias fornecidas (manutencao_*.txt)
-├── resultados/                          # Arquivos *.csv gerados pelos experimentos
+├── resultados/
+│   ├── experimentos/                    # Arquivos *.csv brutos gerados pelos experimentos
+│   └── analise/
+│       ├── tabelas/                     # Tabelas consolidadas em *.csv
+│       └── figuras/                     # Gráficos em alta resolução (*.png)
 │
 ├── scripts/
 │   ├── comparar_vizinhancas.py          # Compara as vizinhanças (troca, realocação, inversão) para T2
 │   ├── executar_experimentos.py         # Executa os algoritmos nas instâncias e salva os *.csv
 │   ├── medir_avaliacao_incremental.py   # Mede o ganho de tempo da avaliação incremental
-│   └── gerar_analises.py                # Lê os *.csv e gera tabelas, boxplots, curvas, testes estatísticos
+│   └── gerar_analises.py                # Lê experimentos/, gera tabelas em analise/tabelas e figuras em analise/figuras
 │
 ├── src/
 │   ├── problema_manutencao.py           # Modelo do problema, vizinhanças e avaliação (completa e incremental)
@@ -72,7 +76,7 @@ sequenciamento-manutencao-ativos
 
 Os experimentos usam sementes fixas (a semente de cada execução é o seu
 número, de 0 a N-1), de modo que repetir os comandos abaixo gera exatamente
-os mesmos resultados. Os arquivos gerados ficam na pasta `resultados/`.
+os mesmos resultados. Os arquivos gerados ficam na pasta `resultados/experimentos/`.
 
 ### Experimentos dos algoritmos
 
@@ -85,10 +89,11 @@ Para executar apenas algumas instâncias (`pequena`, `media` ou `grande`):
 
     python -m scripts.executar_experimentos --instancias pequena
 
-Para cada instância, são gerados dois arquivos:
+Para cada instância, são gerados arquivos na pasta `resultados/experimentos/`:
 
 - `resumo_execucoes_<instancia>.csv`: uma linha por execução (melhor custo, avaliações, tempo e demais métricas)
 - `convergencia_<instancia>.csv`: evolução do melhor custo ao longo das avaliações
+- `convergencia_populacao_ag_<instancia>.csv`: evolução da média da população do AG
 
 Os arquivos de uma instância são sobrescritos a cada execução do comando.
 Para testes rápidos, use `--execucoes`, `--orcamento` e `--pasta-saida`
@@ -99,7 +104,7 @@ os resultados oficiais.
 
     python -m scripts.medir_avaliacao_incremental
 
-Gera o arquivo `resultados/tempo_avaliacao_incremental.csv`, com os tempos da
+Gera o arquivo `resultados/experimentos/tempo_avaliacao_incremental.csv`, com os tempos da
 avaliação completa e da incremental para cada instância e vizinhança.
 
 ### Comparação das vizinhanças (Tarefa T2)
@@ -115,15 +120,33 @@ Opções disponíveis:
 - `--variante`: variante de descida (`primeira_melhoria` ou `melhor_melhoria`). Padrão: `primeira_melhoria`.
 - `--execucoes`: número de execuções independentes por combinação (sobrescreve o padrão do protocolo).
 - `--orcamento`: orçamento de avaliações por execução (sobrescreve o padrão do protocolo).
-- `--pasta-saida`: diretório onde os arquivos serão salvos (padrão: `resultados`).
-
-Exemplo para teste rápido:
-
-    python -m scripts.comparar_vizinhancas --instancias pequena --execucoes 5 --orcamento 10000
+- `--pasta-saida`: diretório onde os arquivos serão salvos (padrão: `resultados/experimentos`).
 
 Arquivo gerado:
-- `resultados/tabela_comparacao_vizinhancas.csv`: tabela consolidada com métricas agrupadas (médias, desvios, medianas, melhor $h$, passos médios, ótimos distintos médios e tempo médio).
+- `resultados/experimentos/tabela_comparacao_vizinhancas.csv`: tabela consolidada com métricas agrupadas.
 
 ### Tabelas e figuras do relatório
 
-A ser preenchido: um comando para cada tabela e figura do relatório.
+Para processar todos os resultados, executar os testes de hipótese não-paramétricos, gerar todas as tabelas em CSV (`resultados/analise/tabelas/`) e produzir todos os gráficos em alta resolução PNG (`resultados/analise/figuras/`) para o relatório:
+
+    python -m scripts.gerar_analises
+
+Arquivos gerados:
+- `resultados/analise/tabelas/`:
+  - `tabela_t1_validacao_fitness.csv`: Validação da função de fitness $h(\pi)$ (Tarefa T1).
+  - `tabela_t2_comparacao_vizinhancas.csv`: Desempenho comparativo das vizinhanças (Tarefa T2).
+  - `tabela_t2_avaliacao_incremental.csv`: Ganho de tempo da avaliação incremental (Tarefa T2).
+  - `tabela_variantes_descida_gulosa.csv`: Melhor Melhoria vs. Primeira Melhoria (Seção 2.3).
+  - `tabela_principal_comparativa.csv`: Tabela principal com média $\pm$ desvio, mediana, melhor $h$ e gap relativo (Seção 5, item 1).
+  - `tabela_tempo_vs_avaliacoes.csv`: Tempo de parede vs. avaliações gastas (Seção 5, item 5).
+  - `tabela_testes_estatisticos_mann_whitney.csv`: Testes não-paramétricos de Mann-Whitney U (Seção 5, item 4).
+  - `tabela_otimos_locais_pequena.csv`: Ótimos distintos e taxa de alcance do ótimo global $h^*=1875$ na pequena.
+  - `tabela_experimento_adicional_recombinacao_ag.csv`: Experimento adicional sobre o operador OX do AG.
+
+- `resultados/analise/figuras/`:
+  - `boxplots_comparativos.png`: Distribuição do melhor $h$ dos algoritmos nas três instâncias.
+  - `curvas_convergencia_{pequena,media,grande}.png`: Mediana do melhor $h$ ao longo das avaliações e média da população do AG.
+  - `taxa_aceitacao_simulated_annealing.png`: Taxa de aceitação de piores ao longo do resfriamento no SA.
+  - `diversidade_algoritmo_genetico.png`: Rastreamento de cromossomos distintos ao longo das avaliações no AG.
+  - `experimento_adicional_recombinacao_ag.png`: Comparação entre AG com OX vs. AG puramente mutacional.
+
