@@ -97,8 +97,8 @@ def main():
     )
     leitor.add_argument(
         "--pasta-saida",
-        default="resultados",
-        help="pasta onde o .csv será gravado (padrão: resultados)",
+        default="resultados/experimentos",
+        help="pasta onde o .csv será gravado (padrão: resultados/experimentos)",
     )
     argumentos = leitor.parse_args()
 
