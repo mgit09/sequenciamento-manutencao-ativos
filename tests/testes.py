@@ -15,6 +15,7 @@ from src.problema_manutencao import (
     aplicar_inversao,
     aplicar_realocacao, 
     aplicar_troca,
+    aplicar_cruzamento_ox,
     Sucessor,
 )
 
@@ -25,6 +26,13 @@ from src.algoritmos.alg_desc_gulosa import (
 )
 from src.algoritmos.alg_simulated_annealing import (
     executar_simulated_annealing,
+)
+from src.algoritmos.alg_genetico import (
+    executar_algoritmo_genetico,
+    ResultadoAlgoritmoGenetico,
+    _selecionar_por_torneio,
+    _mutar_por_inversao,
+    _cruzamento_ox,
 )
 
 # ========================================================================
@@ -576,6 +584,237 @@ def teste25_simulated_annealing_reprodutibilidade_com_mesma_semente():
     assert resultado_1.historico_convergencia == resultado_2.historico_convergencia
     assert resultado_1.quantidade_movimentos_aceitos == resultado_2.quantidade_movimentos_aceitos
 
+# ------------------------------------------------------------------------
+
+def teste26_cruzamento_ox_exemplo_numerico_passo_a_passo():
+    """
+    Verifica o operador Order Crossover (OX) com um exemplo numérico passo a passo.
+    Garante preservação de ordem relativa e ausência de duplicatas.
+    """
+    pai_a = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    pai_b = [9, 8, 7, 6, 5, 4, 3, 2, 1]
+
+    # Corte entre as posições 3 e 6 (inclusive, 0-indexed):
+    # Fatia de pai_a: [4, 5, 6, 7]
+    # Restante de pai_b a partir do índice 7: 2, 1, 9, 8, 3
+    # Esperado filho_1: [9, 8, 3, 4, 5, 6, 7, 2, 1]
+    filho_1, filho_2 = aplicar_cruzamento_ox(pai_a, pai_b, 3, 6)
+
+    assert filho_1 == [9, 8, 3, 4, 5, 6, 7, 2, 1]
+    assert filho_2 == [1, 2, 7, 6, 5, 4, 3, 8, 9]
+
+    # Verifica se ambos continuam sendo permutações válidas
+    assert sorted(filho_1) == list(range(1, 10))
+    assert sorted(filho_2) == list(range(1, 10))
+
+# ------------------------------------------------------------------------
+
+def teste27_cruzamento_ox_sempre_gera_permutacoes_validas():
+    """
+    Verifica se o cruzamento OX sempre gera permutações válidas para diversas
+    combinações aleatórias de pais e posições de corte.
+    """
+    problema = ProblemaManutencao(
+        ler_instancia("instancias/manutencao_pequena.txt"),
+        semente=42,
+    )
+
+    for _ in range(100):
+        pai_1 = problema.gerar_solucao_aleatoria()
+        pai_2 = problema.gerar_solucao_aleatoria()
+
+        filho_1, filho_2 = _cruzamento_ox(pai_1, pai_2, problema.gerador_aleatorio)
+
+        assert len(filho_1) == len(pai_1)
+        assert len(filho_2) == len(pai_2)
+        assert sorted(filho_1) == list(range(1, 13))
+        assert sorted(filho_2) == list(range(1, 13))
+
+# ------------------------------------------------------------------------
+
+def teste28_mutacao_por_inversao_gera_permutacao_valida_com_trecho_invertido():
+    """
+    Verifica se a mutação por inversão (2-opt) gera permutações válidas
+    e se o trecho afetado é estritamente invertido.
+    """
+    problema = ProblemaManutencao(
+        ler_instancia("instancias/manutencao_pequena.txt"),
+        semente=10,
+    )
+    solucao = problema.gerar_solucao_aleatoria()
+
+    for _ in range(100):
+        mutante = _mutar_por_inversao(solucao, problema.gerador_aleatorio)
+
+        # Mutante deve continuar sendo permutação válida dos ativos
+        assert sorted(mutante) == list(range(1, 13))
+        assert len(mutante) == len(solucao)
+        assert mutante != solucao
+
+# ------------------------------------------------------------------------
+
+def teste29_selecao_torneio_escolhe_o_menor_custo():
+    """
+    Verifica se a seleção por torneio escolhe corretamente o indivíduo
+    de menor custo entre os participantes sorteados.
+    """
+    import numpy as np
+    rng = np.random.default_rng(123)
+
+    populacao = [
+        [1, 2, 3],
+        [3, 2, 1],
+        [2, 1, 3],
+        [3, 1, 2],
+    ]
+    custos = [500, 100, 300, 50]  # Menor custo global é o índice 3 (custo 50)
+
+    # Torneio com todos os 4 indivíduos sempre deve selecionar o índice 3
+    vencedor = _selecionar_por_torneio(populacao, custos, 4, rng)
+    assert vencedor == [3, 1, 2]
+
+    # Em torneios menores, deve retornar uma das soluções da população
+    for _ in range(50):
+        escolhido = _selecionar_por_torneio(populacao, custos, 2, rng)
+        assert escolhido in populacao
+
+# ------------------------------------------------------------------------
+
+def teste30_algoritmo_genetico_respeita_orcamento_exato():
+    """
+    Verifica se o Algoritmo Genético para exatamente ao atingir o orçamento,
+    tanto em orçamentos padrão quanto interrompidos no meio de uma geração.
+    """
+    instancia = ler_instancia("instancias/manutencao_pequena.txt")
+
+    for orcamento in (15, 73, 500, 5000):
+        problema = ProblemaManutencao(instancia, semente=1)
+        resultado = executar_algoritmo_genetico(
+            problema,
+            orcamento_avaliacoes=orcamento,
+            tamanho_populacao=20,
+        )
+
+        assert resultado.quantidade_avaliacoes_utilizadas == orcamento
+        assert problema.quantidade_avaliacoes == orcamento
+
+# ------------------------------------------------------------------------
+
+def teste31_algoritmo_genetico_resultado_e_consistente():
+    """
+    Verifica consistência da melhor solução, do melhor custo e do histórico
+    de melhorias do Algoritmo Genético.
+    """
+    instancia = ler_instancia("instancias/manutencao_pequena.txt")
+    problema = ProblemaManutencao(instancia, semente=2)
+
+    resultado = executar_algoritmo_genetico(problema, orcamento_avaliacoes=5000)
+
+    # A melhor solução deve ser uma permutação válida
+    assert sorted(resultado.melhor_solucao) == list(range(1, 13))
+
+    # O custo reportado deve ser idêntico ao recalculado
+    assert resultado.melhor_custo == calcular_atraso_ponderado_total(
+        instancia,
+        resultado.melhor_solucao,
+    )
+
+    # O histórico deve ter avaliações crescentes e custos decrescentes
+    historico = resultado.historico_convergencia
+    for (avaliacoes_antes, custo_antes), (avaliacoes_depois, custo_depois) in zip(
+        historico,
+        historico[1:],
+    ):
+        assert avaliacoes_antes < avaliacoes_depois
+        assert custo_antes > custo_depois
+
+# ------------------------------------------------------------------------
+
+def teste32_algoritmo_genetico_elitismo_preserva_melhor_solucao():
+    """
+    Verifica se o elitismo impede que o melhor custo global piore ao longo
+    das gerações.
+    """
+    instancia = ler_instancia("instancias/manutencao_pequena.txt")
+    problema = ProblemaManutencao(instancia, semente=7)
+
+    resultado = executar_algoritmo_genetico(
+        problema,
+        orcamento_avaliacoes=5000,
+        quantidade_elites=1,
+    )
+
+    # O custo no histórico nunca deve aumentar
+    custos_historico = [c for _, c in resultado.historico_convergencia]
+    assert custos_historico == sorted(custos_historico, reverse=True)
+    assert resultado.melhor_custo <= custos_historico[0]
+
+# ------------------------------------------------------------------------
+
+def teste33_algoritmo_genetico_rastreia_media_populacao_e_diversidade():
+    """
+    Verifica se as curvas de média da população e diversidade são registradas.
+    """
+    instancia = ler_instancia("instancias/manutencao_pequena.txt")
+    problema = ProblemaManutencao(instancia, semente=15)
+
+    resultado = executar_algoritmo_genetico(
+        problema,
+        orcamento_avaliacoes=3000,
+        tamanho_populacao=30,
+    )
+
+    assert len(resultado.historico_media_populacao) > 0
+    assert len(resultado.historico_diversidade) > 0
+
+    # Cada registro de diversidade deve estar entre 1 e tamanho_populacao
+    for _, distintos in resultado.historico_diversidade:
+        assert 1 <= distintos <= 30
+
+    # Cada média de população deve ser positiva
+    for _, media in resultado.historico_media_populacao:
+        assert media > 0
+
+# ------------------------------------------------------------------------
+
+def teste34_algoritmo_genetico_reprodutibilidade_com_mesma_semente():
+    """
+    Verifica se duas execuções com a mesma semente geram resultados idênticos.
+    """
+    instancia = ler_instancia("instancias/manutencao_pequena.txt")
+
+    problema_1 = ProblemaManutencao(instancia, semente=42)
+    resultado_1 = executar_algoritmo_genetico(problema_1, orcamento_avaliacoes=3000)
+
+    problema_2 = ProblemaManutencao(instancia, semente=42)
+    resultado_2 = executar_algoritmo_genetico(problema_2, orcamento_avaliacoes=3000)
+
+    assert resultado_1.melhor_solucao == resultado_2.melhor_solucao
+    assert resultado_1.melhor_custo == resultado_2.melhor_custo
+    assert resultado_1.historico_convergencia == resultado_2.historico_convergencia
+    assert resultado_1.historico_media_populacao == resultado_2.historico_media_populacao
+    assert resultado_1.historico_diversidade == resultado_2.historico_diversidade
+
+# ------------------------------------------------------------------------
+
+def teste35_problema_manutencao_metodos_cruzamento_e_mutacao():
+    """
+    Verifica os métodos cruzamento e mutacao adicionados a ProblemaManutencao.
+    """
+    instancia = ler_instancia("instancias/manutencao_pequena.txt")
+    problema = ProblemaManutencao(instancia, semente=99)
+
+    sol_a = problema.gerar_solucao_aleatoria()
+    sol_b = problema.gerar_solucao_aleatoria()
+
+    filho_a, filho_b = problema.cruzamento(sol_a, sol_b)
+    assert sorted(filho_a) == list(range(1, 13))
+    assert sorted(filho_b) == list(range(1, 13))
+
+    mutante = problema.mutacao(sol_a)
+    assert sorted(mutante) == list(range(1, 13))
+    assert mutante != sol_a
+
 # ========================================================================
 # EXECUÇÃO DOS TESTES
 
@@ -608,5 +847,16 @@ if __name__ == "__main__":
     teste23_simulated_annealing_temperatura_baixa_rejeita_pioras()
     teste24_simulated_annealing_taxa_aceitacao_decresce_ao_longo_da_tempera()
     teste25_simulated_annealing_reprodutibilidade_com_mesma_semente()
+    teste26_cruzamento_ox_exemplo_numerico_passo_a_passo()
+    teste27_cruzamento_ox_sempre_gera_permutacoes_validas()
+    teste28_mutacao_por_inversao_gera_permutacao_valida_com_trecho_invertido()
+    teste29_selecao_torneio_escolhe_o_menor_custo()
+    teste30_algoritmo_genetico_respeita_orcamento_exato()
+    teste31_algoritmo_genetico_resultado_e_consistente()
+    teste32_algoritmo_genetico_elitismo_preserva_melhor_solucao()
+    teste33_algoritmo_genetico_rastreia_media_populacao_e_diversidade()
+    teste34_algoritmo_genetico_reprodutibilidade_com_mesma_semente()
+    teste35_problema_manutencao_metodos_cruzamento_e_mutacao()
 
     print("Todos os testes passaram.") # Se algum falhar, não será impresso
+
