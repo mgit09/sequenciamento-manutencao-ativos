@@ -60,9 +60,11 @@ sequenciamento-manutencao-ativos
 ├── src/
 │   ├── problema_manutencao.py           # Modelo do problema, vizinhanças e avaliação (completa e incremental)
 │   └── algoritmos/
-│       ├── resultado_busca.py           # Estrutura com o resultado de uma execução
-│       └── alg_desc_gulosa.py           # Descida gulosa com reinício aleatório
-│
+│       ├── resultado_busca.py           # Estrutura base com o resultado de uma execução
+│       ├── alg_desc_gulosa.py           # Descida gulosa com reinício aleatório
+│       ├── alg_simulated_annealing.py   # Simulated Annealing com resfriamento geométrico
+│       └── alg_genetico.py              # Algoritmo Genético com seleção por torneio, OX e elitismo
+|
 ├── tests/
 │   └── testes.py                        # Testes automáticos
 │
@@ -74,9 +76,12 @@ sequenciamento-manutencao-ativos
 
 ## Reprodução dos resultados
 
-Os experimentos usam sementes fixas (a semente de cada execução é o seu
-número, de 0 a N-1), de modo que repetir os comandos abaixo gera exatamente
-os mesmos resultados. Os arquivos gerados ficam na pasta `resultados/experimentos/`.
+Os experimentos utilizam sementes pseudoaleatórias fixas (a semente de cada execução é o seu índice, de 0 a $N-1$), garantindo reprodutibilidade estrita. Os arquivos intermediários e brutos ficam na pasta `resultados/experimentos/`.
+> **Nota sobre o fluxo de execução**: caso deseje reproduzir todos os dados do zero, a ordem recomendada de execução é:
+> 1. `scripts.medir_avaliacao_incremental`
+> 2. `scripts.comparar_vizinhancas`
+> 3. `scripts.executar_experimentos`
+> 4. `scripts.gerar_analises` (depende das saídas dos scripts anteriores)
 
 ### Experimentos dos algoritmos
 
