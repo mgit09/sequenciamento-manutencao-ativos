@@ -172,6 +172,50 @@ def aplicar_inversao(
 
     return sucessor
 
+# ------------------------------------------------------------------------
+
+def aplicar_cruzamento_ox(
+    pai_a: list[int],
+    pai_b: list[int],
+    posicao_inicial: int,
+    posicao_final: int,
+) -> tuple[list[int], list[int]]:
+    """
+    Devolve dois filhos gerados pelo operador Order Crossover (OX).
+
+    Copia o trecho delimitado por [posicao_inicial, posicao_final] para cada filho
+    e completa as demais posições preservando a ordem circular do outro pai.
+    """
+    n = len(pai_a)
+    if n != len(pai_b):
+        raise ValueError("Os pais devem ter o mesmo tamanho.")
+    if n <= 1:
+        return list(pai_a), list(pai_b)
+
+    inicio = min(posicao_inicial, posicao_final)
+    fim = max(posicao_inicial, posicao_final)
+
+    def _gerar_filho(base: list[int], doador: list[int]) -> list[int]:
+        filho = [None] * n
+        fatia = base[inicio:fim + 1]
+        filho[inicio:fim + 1] = fatia
+        elementos_fatia = set(fatia)
+
+        pos_filho = (fim + 1) % n
+        pos_doador = (fim + 1) % n
+
+        for _ in range(n):
+            gene = doador[pos_doador]
+            if gene not in elementos_fatia:
+                filho[pos_filho] = gene
+                pos_filho = (pos_filho + 1) % n
+            pos_doador = (pos_doador + 1) % n
+
+        return filho
+
+    return _gerar_filho(pai_a, pai_b), _gerar_filho(pai_b, pai_a)
+
+
 # ========================================================================
 
 class Sucessor(list):
@@ -451,3 +495,31 @@ class ProblemaManutencao:
             aplicar_inversao(solucao, posicao_inicial, posicao_final),
             primeira_posicao_alterada=posicao_inicial,
         )
+
+    # --------------------------------------------------------------------
+    def cruzamento(
+        self,
+        solucao_a: list[int],
+        solucao_b: list[int],
+    ) -> tuple[list[int], list[int]]:
+        """
+        Gera dois descendentes aplicando o Order Crossover (OX) com pontos sorteados.
+        """
+        n = len(solucao_a)
+        if n < 2:
+            return list(solucao_a), list(solucao_b)
+
+        posicao_a, posicao_b = self.gerador_aleatorio.choice(
+            n,
+            size=2,
+            replace=False,
+        )
+        return aplicar_cruzamento_ox(solucao_a, solucao_b, posicao_a, posicao_b)
+
+    # --------------------------------------------------------------------
+    def mutacao(self, solucao: list[int]) -> list[int]:
+        """
+        Gera um mutante aplicando o operador de vizinhança de inversão (2-opt).
+        """
+        return list(self._gerar_sucessor_aleatorio_por_inversao(solucao))
+
