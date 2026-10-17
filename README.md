@@ -64,7 +64,7 @@ sequenciamento-manutencao-ativos
 │       ├── alg_desc_gulosa.py           # Descida gulosa com reinício aleatório
 │       ├── alg_simulated_annealing.py   # Simulated Annealing com resfriamento geométrico
 │       └── alg_genetico.py              # Algoritmo Genético com seleção por torneio, OX e elitismo
-|
+│
 ├── tests/
 │   └── testes.py                        # Testes automáticos
 │
