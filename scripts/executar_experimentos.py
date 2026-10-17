@@ -30,6 +30,9 @@ from src.algoritmos.alg_desc_gulosa import (
 from src.algoritmos.alg_simulated_annealing import (
     executar_simulated_annealing,
 )
+from src.algoritmos.alg_genetico import (
+    executar_algoritmo_genetico,
+)
 from src.problema_manutencao import (
     ProblemaManutencao, 
     ler_instancia
@@ -76,6 +79,7 @@ ALGORITMOS = {
         variante=PRIMEIRA_MELHORIA,
     ),
     "simulated_annealing": executar_simulated_annealing,
+    "algoritmo_genetico": executar_algoritmo_genetico,
 }
 
 # ========================================================================
@@ -91,9 +95,11 @@ def executar_instancia(
 
     caminho_resumo = pasta_saida / f"resumo_execucoes_{nome_instancia}.csv"
     caminho_convergencia = pasta_saida / f"convergencia_{nome_instancia}.csv"
+    caminho_populacao_ag = pasta_saida / f"convergencia_populacao_ag_{nome_instancia}.csv"
 
     linhas_resumo = []
     linhas_convergencia = []
+    linhas_populacao_ag = []
 
     nomes_algoritmos = algoritmos_a_executar or list(ALGORITMOS)
 
@@ -138,6 +144,18 @@ def executar_instancia(
                         "melhor_custo": melhor_custo,
                     }
                 )
+
+            if hasattr(resultado, "historico_media_populacao") and resultado.historico_media_populacao:
+                for avaliacoes, media_custo in resultado.historico_media_populacao:
+                    linhas_populacao_ag.append(
+                        {
+                            "instancia": nome_instancia,
+                            "semente": semente,
+                            "avaliacoes": avaliacoes,
+                            "media_custo_populacao": media_custo,
+                        }
+                    )
+                pd.DataFrame(linhas_populacao_ag).to_csv(caminho_populacao_ag, index=False)
 
             # Regrava os arquivos a cada execução para não perder dados se algo falhar
             pd.DataFrame(linhas_resumo).to_csv(caminho_resumo, index=False)
