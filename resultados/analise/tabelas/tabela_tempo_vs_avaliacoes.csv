@@ -1,0 +1,13 @@
+Instância,Algoritmo,Orçamento (Avaliações),Tempo Médio de Parede (s),μs por Avaliação
+Pequena,Descida Gulosa (Melhor Melh.),"50,000",0.33,6.53
+Pequena,Descida Gulosa (Prim. Melh.),"50,000",0.37,7.38
+Pequena,Simulated Annealing,"50,000",1.02,20.30
+Pequena,Algoritmo Genético,"50,000",1.41,28.16
+Media,Descida Gulosa (Melhor Melh.),"150,000",3.10,20.65
+Media,Descida Gulosa (Prim. Melh.),"150,000",3.61,24.06
+Media,Simulated Annealing,"150,000",6.26,41.72
+Media,Algoritmo Genético,"150,000",8.74,58.25
+Grande,Descida Gulosa (Melhor Melh.),"300,000",18.07,60.23
+Grande,Descida Gulosa (Prim. Melh.),"300,000",23.60,78.66
+Grande,Simulated Annealing,"300,000",28.63,95.43
+Grande,Algoritmo Genético,"300,000",40.31,134.38

@@ -1,0 +1,5 @@
+Algoritmo,Total Execuções,Alcançou h*=1875,Média Ótimos Distintos,Melhor h,Pior h
+Descida Gulosa (Melhor Melh.),30,30/30 (100.0%),60.1,1875,1875
+Descida Gulosa (Prim. Melh.),30,30/30 (100.0%),51.8,1875,1875
+Simulated Annealing,30,29/30 (96.7%),N/A,1875,1937
+Algoritmo Genético,30,4/30 (13.3%),N/A,1875,2456

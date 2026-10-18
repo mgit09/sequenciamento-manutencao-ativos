@@ -1,0 +1,10 @@
+Instância,Vizinhança,Sucessores,Tempo Completa (s),Tempo Incremental (s),μs/mov. Completa,μs/mov. Incremental,Ganho (Speedup)
+Pequena,Troca,66,0.00047,0.00036,7.15,5.47,1.31
+Pequena,Realocacao,121,0.00086,0.00067,7.09,5.57,1.27
+Pequena,Inversao,66,0.00046,0.00036,6.93,5.41,1.28
+Media,Troca,1225,0.03408,0.02394,27.82,19.54,1.42
+Media,Realocacao,2401,0.06714,0.04755,27.96,19.8,1.41
+Media,Inversao,1225,0.03430,0.02402,28.0,19.61,1.43
+Grande,Troca,11175,0.96195,0.64133,86.08,57.39,1.5
+Grande,Realocacao,22201,1.90410,1.29874,85.77,58.5,1.47
+Grande,Inversao,11175,0.96797,0.64915,86.62,58.09,1.49

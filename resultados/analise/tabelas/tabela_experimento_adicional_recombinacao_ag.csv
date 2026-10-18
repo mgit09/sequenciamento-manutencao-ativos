@@ -1,0 +1,3 @@
+Configuração,Melhor h,Média h,Mediana h,Desvio h
+"AG Padrão (com OX, Pc=0.85, Pm=0.15)",18609,22441.7,21075.0,2870.0
+"AG sem Crossover (Apenas Mutação, Pc=0.0, Pm=1.0)",18750,20318.7,20451.0,1236.7
