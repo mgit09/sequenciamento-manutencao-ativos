@@ -229,7 +229,7 @@ def executar_tarefa_t2() -> tuple[pd.DataFrame, pd.DataFrame]:
         if v == "troca":
             tam = n * (n - 1) // 2
         elif v == "realocacao":
-            tam = n * (n - 1)
+            tam = (n - 1) ** 2
         elif v == "inversao":
             tam = n * (n - 1) // 2
         else:
