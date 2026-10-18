@@ -547,7 +547,7 @@ def gerar_boxplots_comparativos():
 
         bplot = ax.boxplot(
             dados_boxplot,
-            labels=rotulos,
+            tick_labels=rotulos,
             patch_artist=True,
             showmeans=True,
             meanprops={
@@ -846,7 +846,7 @@ def executar_experimento_adicional_recombinacao_ag():
     fig, ax = plt.subplots(figsize=(6.5, 5))
     bplot = ax.boxplot(
         [custos_com_ox, custos_sem_ox],
-        labels=["AG com OX\n(Pc=0.85, Pm=0.15)", "AG sem OX\n(Pc=0.0, Pm=1.0)"],
+        tick_labels=["AG com OX\n(Pc=0.85, Pm=0.15)", "AG sem OX\n(Pc=0.0, Pm=1.0)"],
         patch_artist=True,
         showmeans=True,
         meanprops={"marker": "D", "markerfacecolor": "black", "markeredgecolor": "black"},
