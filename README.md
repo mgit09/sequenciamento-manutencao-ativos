@@ -49,13 +49,15 @@ sequenciamento-manutencao-ativos
 │   ├── experimentos/                    # Arquivos *.csv brutos gerados pelos experimentos
 │   └── analise/
 │       ├── tabelas/                     # Tabelas consolidadas em *.csv
+│       ├── tabelas_latex/               # Tabelas convertidas em *.tex, prontas para o relatório
 │       └── figuras/                     # Gráficos em alta resolução (*.png)
 │
 ├── scripts/
 │   ├── comparar_vizinhancas.py          # Compara as vizinhanças (troca, realocação, inversão) para T2
 │   ├── executar_experimentos.py         # Executa os algoritmos nas instâncias e salva os *.csv
 │   ├── medir_avaliacao_incremental.py   # Mede o ganho de tempo da avaliação incremental
-│   └── gerar_analises.py                # Lê experimentos/, gera tabelas em analise/tabelas e figuras em analise/figuras
+│   ├── gerar_analises.py                # Lê experimentos/, gera tabelas em analise/tabelas e figuras em analise/figuras
+│   └── gerar_tabelas_latex.py           # Converte as tabelas *.csv da análise em arquivos *.tex
 │
 ├── src/
 │   ├── problema_manutencao.py           # Modelo do problema, vizinhanças e avaliação (completa e incremental)
@@ -76,12 +78,14 @@ sequenciamento-manutencao-ativos
 
 ## Reprodução dos resultados
 
-Os experimentos utilizam sementes pseudoaleatórias fixas (a semente de cada execução é o seu índice, de 0 a $N-1$), garantindo reprodutibilidade estrita. Os arquivos intermediários e brutos ficam na pasta `resultados/experimentos/`.
-> **Nota sobre o fluxo de execução**: caso deseje reproduzir todos os dados do zero, a ordem recomendada de execução é:
-> 1. `scripts.medir_avaliacao_incremental`
-> 2. `scripts.comparar_vizinhancas`
-> 3. `scripts.executar_experimentos`
-> 4. `scripts.gerar_analises` (depende das saídas dos scripts anteriores)
+Os experimentos utilizam sementes pseudoaleatórias fixas (a semente de cada execução é o seu índice, de 0 a $N-1$), o que permite reproduzir os resultados de qualidade (os tempos de execução variam conforme a máquina). Os arquivos brutos ficam na pasta `resultados/experimentos/`.
+
+> **Nota sobre o fluxo de execução**: caso deseje reproduzir todos os dados do zero, a ordem recomendada é:
+> 1. `python -m scripts.medir_avaliacao_incremental`
+> 2. `python -m scripts.comparar_vizinhancas`
+> 3. `python -m scripts.executar_experimentos`
+> 4. `python -m scripts.gerar_analises` (depende das saídas dos scripts anteriores)
+> 5. `python -m scripts.gerar_tabelas_latex` (depende da saída do passo 4)
 
 ### Experimentos dos algoritmos
 
@@ -104,6 +108,10 @@ Os arquivos de uma instância são sobrescritos a cada execução do comando.
 Para testes rápidos, use `--execucoes`, `--orcamento` e `--pasta-saida`
 (por exemplo, `--pasta-saida resultados_teste`), a fim de não sobrescrever
 os resultados oficiais.
+
+Para executar apenas alguns algoritmos, use `--algoritmos` (`descida_gulosa_melhor_melhoria`, `descida_gulosa_primeira_melhoria`, `simulated_annealing` e `algoritmo_genetico`). Atenção: os arquivos da instância são regravados apenas com os algoritmos escolhidos, então, para os resultados oficiais, execute todos os algoritmos de uma mesma instância na mesma chamada.
+
+A execução completa leva dezenas de minutos.
 
 ### Ganho de tempo da avaliação incremental
 
@@ -155,3 +163,12 @@ Arquivos gerados:
   - `diversidade_algoritmo_genetico.png`: Rastreamento de cromossomos distintos ao longo das avaliações no AG.
   - `experimento_adicional_recombinacao_ag.png`: Comparação entre AG com OX vs. AG puramente mutacional.
 
+### Tabelas em LaTeX
+
+Converte cada tabela `*.csv` de `resultados/analise/tabelas/` em um arquivo `*.tex` (ambiente `tabular` no estilo `booktabs`, ajustado à largura disponível), para ser incluído no relatório com `\input`:
+
+    python -m scripts.gerar_tabelas_latex
+
+Opções disponíveis:
+- `--pasta-entrada`: pasta com os `*.csv` (padrão: `resultados/analise/tabelas`).
+- `--pasta-saida`: pasta onde os `*.tex` serão gravados (padrão: `resultados/analise/tabelas_latex`).
